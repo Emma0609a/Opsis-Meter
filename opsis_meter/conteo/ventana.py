@@ -74,7 +74,7 @@ class VentanaConteo(ctk.CTkToplevel):
         self.fullscreen_state = False
         self.normal_geometry = None
 
-        # Fuente de video: 'local' o 'ip'
+        # Fuente de video: 'local', 'ip' o 'movil'
         self.tipo_camara = "local"
         self.dispositivos = []
         self.dispositivo_actual = 0
@@ -313,7 +313,7 @@ class VentanaConteo(ctk.CTkToplevel):
 
         self.camera_type_menu = ctk.CTkComboBox(
             camera_type_container,
-            values=["Cámara Local", "Cámara IP"],
+            values=["Cámara Local", "Cámara IP", "Cámara de Móvil"],
             font=fuente(14),
             command=self.al_cambiar_tipo_camara,
             state="normal",
@@ -387,6 +387,101 @@ class VentanaConteo(ctk.CTkToplevel):
             justify="left",
         )
         ip_info_label.pack(fill="x")
+
+        # Cámara de móvil: apps que convierten el teléfono en cámara de red
+        self.movil_container = ctk.CTkFrame(scrollable_frame, fg_color="transparent")
+        self.movil_container.pack_forget()
+
+        movil_label = ctk.CTkLabel(
+            self.movil_container,
+            text="Móvil como cámara:",
+            font=fuente(15, "bold"),
+            anchor="w",
+        )
+        movil_label.pack(fill="x", pady=(0, 8))
+
+        self.movil_app_menu = ctk.CTkComboBox(
+            self.movil_container,
+            values=["IP Webcam (Android)", "DroidCam (Android/iOS)"],
+            font=fuente(14),
+            command=self._al_cambiar_app_movil,
+            state="normal",
+            height=42,
+            corner_radius=12,
+            border_width=2,
+            border_color=COLOR["neutro"],
+            button_color=COLOR["neutro"],
+            button_hover_color=COLOR["neutro_hover"],
+        )
+        self.movil_app_menu.set("IP Webcam (Android)")
+        self.movil_app_menu.pack(fill="x", pady=(0, 10))
+
+        movil_red_frame = ctk.CTkFrame(self.movil_container, fg_color="transparent")
+        movil_red_frame.pack(fill="x", pady=(0, 8))
+
+        self.movil_ip_entry = ctk.CTkEntry(
+            movil_red_frame,
+            font=fuente(13),
+            height=42,
+            corner_radius=12,
+            border_width=2,
+            border_color=COLOR["neutro"],
+            placeholder_text="IP del móvil (ej. 192.168.1.50)",
+        )
+        self.movil_ip_entry.pack(side="left", fill="x", expand=True, padx=(0, 8))
+        self.movil_ip_entry.bind("<KeyRelease>", self._actualizar_url_movil)
+
+        self.movil_puerto_entry = ctk.CTkEntry(
+            movil_red_frame,
+            font=fuente(13),
+            width=80,
+            height=42,
+            corner_radius=12,
+            justify="center",
+            border_width=2,
+            border_color=COLOR["neutro"],
+        )
+        self.movil_puerto_entry.insert(0, "8080")
+        self.movil_puerto_entry.pack(side="left")
+        self.movil_puerto_entry.bind("<KeyRelease>", self._actualizar_url_movil)
+
+        self.movil_url_label = ctk.CTkLabel(
+            self.movil_container,
+            text="URL: (ingresa la IP del móvil)",
+            font=fuente(11),
+            text_color=COLOR["texto_apagado"],
+            anchor="w",
+            justify="left",
+        )
+        self.movil_url_label.pack(fill="x", pady=(0, 6))
+
+        movil_info_label = ctk.CTkLabel(
+            self.movil_container,
+            text="1. Instala la app en el teléfono\n"
+            "2. Conecta el móvil a la misma red WiFi que esta PC\n"
+            "3. Inicia el servidor de video en la app y copia aquí la IP",
+            font=fuente(11),
+            text_color=COLOR["texto_apagado"],
+            anchor="w",
+            justify="left",
+        )
+        movil_info_label.pack(fill="x")
+
+        # Probar conexión (común a las tres fuentes)
+        self.probar_container = ctk.CTkFrame(scrollable_frame, fg_color="transparent")
+        self.probar_container.pack(fill="x", pady=(0, 20))
+
+        self.probar_button = ctk.CTkButton(
+            self.probar_container,
+            text="Probar Conexión",
+            font=fuente(14, "bold"),
+            height=42,
+            fg_color=COLOR["neutro"],
+            hover_color=COLOR["neutro_hover"],
+            corner_radius=12,
+            command=self.probar_conexion,
+        )
+        self.probar_button.pack(fill="x")
 
         # Resolución
         resolution_container = ctk.CTkFrame(scrollable_frame, fg_color="transparent")
@@ -555,18 +650,46 @@ class VentanaConteo(ctk.CTkToplevel):
     # ----- Cambios de opciones -----
 
     def al_cambiar_tipo_camara(self, eleccion):
-        """Maneja el cambio de tipo de cámara."""
-        if eleccion == "Cámara Local":
-            self.tipo_camara = "local"
-            self.device_container.pack(fill="x", pady=(0, 20))
-            self.ip_camera_container.pack_forget()
-        else:
+        """Muestra el panel de configuración de la fuente elegida."""
+        self.device_container.pack_forget()
+        self.ip_camera_container.pack_forget()
+        self.movil_container.pack_forget()
+
+        if eleccion == "Cámara IP":
             self.tipo_camara = "ip"
-            self.device_container.pack_forget()
-            self.ip_camera_container.pack(fill="x", pady=(0, 20))
+            self.ip_camera_container.pack(fill="x", pady=(0, 20), before=self.probar_container)
+        elif eleccion == "Cámara de Móvil":
+            self.tipo_camara = "movil"
+            self.movil_container.pack(fill="x", pady=(0, 20), before=self.probar_container)
+        else:
+            self.tipo_camara = "local"
+            self.device_container.pack(fill="x", pady=(0, 20), before=self.probar_container)
 
         if self.vista_activa:
             self.detener_captura()
+
+    def _al_cambiar_app_movil(self, eleccion):
+        """Ajusta el puerto por defecto de la app elegida."""
+        puerto = "4747" if "DroidCam" in eleccion else "8080"
+        self.movil_puerto_entry.delete(0, "end")
+        self.movil_puerto_entry.insert(0, puerto)
+        self._actualizar_url_movil()
+
+    def _actualizar_url_movil(self, event=None):
+        url = self._url_movil()
+        self.movil_url_label.configure(
+            text=f"URL: {url}" if url else "URL: (ingresa la IP del móvil)"
+        )
+
+    def _url_movil(self) -> str | None:
+        """Construye la URL de video del móvil; None si falta la IP."""
+        ip = self.movil_ip_entry.get().strip()
+        if not ip:
+            return None
+        puerto_defecto = "4747" if "DroidCam" in self.movil_app_menu.get() else "8080"
+        puerto = self.movil_puerto_entry.get().strip() or puerto_defecto
+        # IP Webcam y DroidCam sirven MJPEG en /video
+        return f"http://{ip}:{puerto}/video"
 
     def al_cambiar_dispositivo(self, eleccion):
         """Maneja el cambio de dispositivo."""
@@ -619,25 +742,110 @@ class VentanaConteo(ctk.CTkToplevel):
             except cola_estandar.Full:
                 pass
 
+    # ----- Fuente de video y prueba de conexión -----
+
+    def _resolver_fuente(self):
+        """
+        Devuelve (fuente, es_red) según el tipo de cámara elegido,
+        o None si falta configuración (muestra el error al operario).
+        """
+        if self.tipo_camara == "ip":
+            url = self.ip_camera_entry.get().strip()
+            if not url:
+                messagebox.showerror(
+                    "Error", "Por favor, ingresa la URL/IP de la cámara", parent=self
+                )
+                return None
+            return url, True
+        if self.tipo_camara == "movil":
+            url = self._url_movil()
+            if url is None:
+                messagebox.showerror(
+                    "Error",
+                    "Por favor, ingresa la IP del móvil.\n"
+                    "La app (IP Webcam / DroidCam) la muestra al iniciar el servidor.",
+                    parent=self,
+                )
+                return None
+            return url, True
+        return self.dispositivo_actual, False
+
+    def probar_conexion(self):
+        """Verifica la fuente de video en un hilo, sin congelar la interfaz."""
+        if self.vista_activa or self.conteo_activo:
+            return
+        resultado = self._resolver_fuente()
+        if resultado is None:
+            return
+        fuente_video, es_red = resultado
+        self.probar_button.configure(state="disabled", text="Probando...")
+
+        def _probar():
+            exito, detalle = False, ""
+            try:
+                if es_red:
+                    # Timeouts de FFMPEG: que una IP mal escrita no espere minutos
+                    captura = cv2.VideoCapture(
+                        fuente_video,
+                        cv2.CAP_FFMPEG,
+                        [
+                            cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 5000,
+                            cv2.CAP_PROP_READ_TIMEOUT_MSEC, 5000,
+                        ],
+                    )
+                else:
+                    captura = cv2.VideoCapture(fuente_video)
+                if captura.isOpened():
+                    ret, frame = captura.read()
+                    if ret and frame is not None:
+                        alto, ancho = frame.shape[:2]
+                        exito, detalle = True, f"{ancho}x{alto}"
+                    else:
+                        detalle = "La fuente abre pero no entrega imagen."
+                else:
+                    detalle = "No se pudo abrir la fuente de video."
+                captura.release()
+            except Exception as e:
+                detalle = str(e)
+            try:
+                self.after(0, lambda: self._mostrar_resultado_prueba(exito, detalle, fuente_video))
+            except RuntimeError:
+                pass  # la ventana se cerró durante la prueba
+
+        threading.Thread(target=_probar, daemon=True).start()
+
+    def _mostrar_resultado_prueba(self, exito, detalle, fuente_video):
+        self.probar_button.configure(state="normal", text="Probar Conexión")
+        if exito:
+            messagebox.showinfo(
+                "Conexión exitosa",
+                f"La cámara responde correctamente.\n\n"
+                f"Fuente: {fuente_video}\nResolución: {detalle}",
+                parent=self,
+            )
+        else:
+            messagebox.showerror(
+                "Sin conexión",
+                f"No se pudo conectar a la cámara.\n\n"
+                f"Fuente: {fuente_video}\n{detalle}\n\n"
+                "Verifica que el dispositivo esté encendido y en la misma red.",
+                parent=self,
+            )
+
     # ----- Captura -----
 
     def iniciar_captura(self):
         """Inicia la vista previa de la cámara."""
-        if self.tipo_camara == "ip":
-            fuente_video = self.ip_camera_entry.get().strip()
-            if not fuente_video:
-                messagebox.showerror(
-                    "Error", "Por favor, ingresa la URL/IP de la cámara", parent=self
-                )
-                return
-        else:
-            fuente_video = self.dispositivo_actual
+        resultado = self._resolver_fuente()
+        if resultado is None:
+            return
+        fuente_video, es_red = resultado
 
         self.flujo = FlujoCamara(
             fuente_video,
             resolucion=self.resolucion_actual,
             limite_fps=self.fps_limite,
-            es_ip=(self.tipo_camara == "ip"),
+            es_ip=es_red,
         )
         self.flujo.iniciar()
 
@@ -664,8 +872,13 @@ class VentanaConteo(ctk.CTkToplevel):
         self.stop_button.configure(state="normal" if capturando else "disabled")
         estado = "disabled" if capturando else "normal"
         self.camera_type_menu.configure(state=estado)
+        self.probar_button.configure(state=estado)
         if self.tipo_camara == "ip":
             self.ip_camera_entry.configure(state=estado)
+        elif self.tipo_camara == "movil":
+            self.movil_app_menu.configure(state=estado)
+            self.movil_ip_entry.configure(state=estado)
+            self.movil_puerto_entry.configure(state=estado)
         else:
             self.device_menu.configure(state=estado)
 
@@ -724,15 +937,10 @@ class VentanaConteo(ctk.CTkToplevel):
         if self.conteo_activo:
             return
 
-        if self.tipo_camara == "ip":
-            fuente_video = self.ip_camera_entry.get().strip()
-            if not fuente_video:
-                messagebox.showerror(
-                    "Error", "Por favor, ingresa la URL/IP de la cámara", parent=self
-                )
-                return
-        else:
-            fuente_video = self.dispositivo_actual
+        resultado = self._resolver_fuente()
+        if resultado is None:
+            return
+        fuente_video, es_red = resultado
 
         # El proceso de IA es el dueño de la cámara: cerrar la vista previa
         if self.vista_activa:
@@ -746,7 +954,7 @@ class VentanaConteo(ctk.CTkToplevel):
             target=ejecutar_conteo,
             args=(
                 fuente_video,
-                self.tipo_camara == "ip",
+                es_red,
                 self.resolucion_actual,
                 self.fps_limite,
                 str(config.ruta_modelo) if config.ruta_modelo else None,
@@ -889,6 +1097,10 @@ class VentanaConteo(ctk.CTkToplevel):
         self.camera_type_menu.configure(state=estado)
         self.device_menu.configure(state=estado)
         self.ip_camera_entry.configure(state=estado)
+        self.movil_app_menu.configure(state=estado)
+        self.movil_ip_entry.configure(state=estado)
+        self.movil_puerto_entry.configure(state=estado)
+        self.probar_button.configure(state=estado)
         self.resolution_menu.configure(state=estado)
         self.linea_orientacion_menu.configure(state=estado)
         self.linea_posicion_slider.configure(state=estado)
