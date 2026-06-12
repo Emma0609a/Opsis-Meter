@@ -10,7 +10,7 @@ import threading
 import time
 
 
-class CountingWindow(ctk.CTkToplevel):
+class VentanaConteo(ctk.CTkToplevel):
     """Ventana de conteo con cámara"""
     
     def __init__(self, parent):
