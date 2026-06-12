@@ -1,286 +1,167 @@
 """
-Menú Principal - Opsis Meter
-Pantalla de inicio: acceso al conteo, al historial y a la configuración.
+Vista de Inicio - Opsis Meter
+Panel de bienvenida con accesos rápidos e información del sistema.
 """
 
 import customtkinter as ctk
 
-from opsis_meter.compartido.tema import COLOR, configurar_apariencia, fuente
-from opsis_meter.compartido.ventanas import centrar_ventana
+from opsis_meter.compartido.tema import COLOR, fuente
 
 
-class MenuPrincipal(ctk.CTk):
-    """Ventana principal del menú de Opsis Meter."""
+class VistaInicio(ctk.CTkFrame):
+    """Panel de inicio dentro de la ventana principal."""
 
-    def __init__(self):
-        configurar_apariencia()
-        super().__init__()
-
-        self.title("Opsis Meter - Contador de Limones")
-        self.geometry("700x900")
-        self.minsize(600, 800)
-        self.resizable(True, True)
-
+    def __init__(self, parent, controlador):
+        super().__init__(parent, fg_color="transparent")
+        self.controlador = controlador
         self.crear_widgets()
 
-        # Centrar después de que la geometría inicial esté aplicada
-        self.after(100, lambda: centrar_ventana(self))
-
-        # Al volver de una ventana secundaria (deiconify) se restaura el estado
-        self.bind("<Map>", self._al_mostrarse)
-
     def crear_widgets(self):
-        """Crea los widgets de la interfaz."""
-
-        main_frame = ctk.CTkFrame(self, fg_color=COLOR["fondo"])
-        main_frame.pack(fill="both", expand=True, padx=25, pady=25)
+        contenido = ctk.CTkFrame(self, fg_color="transparent")
+        contenido.pack(fill="both", expand=True, padx=40, pady=32)
 
         # ===== ENCABEZADO =====
-        header_frame = ctk.CTkFrame(main_frame, fg_color=COLOR["panel"], corner_radius=16)
-        header_frame.pack(fill="x", pady=(0, 25), padx=5)
-
-        header_content = ctk.CTkFrame(header_frame, fg_color="transparent")
-        header_content.pack(fill="x", padx=25, pady=25)
-
-        title_label = ctk.CTkLabel(
-            header_content,
-            text="OPSIS METER",
-            font=fuente(42, "bold"),
-            text_color=COLOR["primario"],
-        )
-        title_label.pack(pady=(5, 10))
-
-        separator1 = ctk.CTkFrame(header_content, height=2, fg_color=COLOR["primario"])
-        separator1.pack(fill="x", pady=(0, 12))
-
-        subtitle_label = ctk.CTkLabel(
-            header_content,
-            text="Sistema Inteligente de Conteo de Limones",
-            font=fuente(17, "bold"),
+        titulo = ctk.CTkLabel(
+            contenido,
+            text="Bienvenido a Opsis Meter",
+            font=fuente(34, "bold"),
             text_color=COLOR["texto"],
+            anchor="w",
         )
-        subtitle_label.pack(pady=(0, 8))
+        titulo.pack(fill="x")
 
-        description_label = ctk.CTkLabel(
-            header_content,
-            text="Powered by YOLO + ByteTrack • Offline-First",
-            font=fuente(12),
-            text_color=COLOR["texto_tenue"],
+        subtitulo = ctk.CTkLabel(
+            contenido,
+            text="Sistema inteligente de conteo de limones para bandas transportadoras",
+            font=fuente(15),
+            text_color=COLOR["texto_suave"],
+            anchor="w",
         )
-        description_label.pack()
+        subtitulo.pack(fill="x", pady=(4, 28))
 
-        # ===== BOTONES PRINCIPALES =====
-        buttons_container = ctk.CTkFrame(main_frame, fg_color=COLOR["panel"], corner_radius=16)
-        buttons_container.pack(fill="both", expand=True, pady=(0, 20), padx=5)
+        # ===== TARJETAS DE ACCIÓN =====
+        tarjetas = ctk.CTkFrame(contenido, fg_color="transparent")
+        tarjetas.pack(fill="x")
+        tarjetas.grid_columnconfigure(0, weight=1, uniform="tarjetas")
+        tarjetas.grid_columnconfigure(1, weight=1, uniform="tarjetas")
 
-        buttons_inner = ctk.CTkFrame(buttons_container, fg_color="transparent")
-        buttons_inner.pack(expand=True, fill="both", padx=25, pady=25)
-
-        buttons_frame = ctk.CTkFrame(buttons_inner, fg_color="transparent")
-        buttons_frame.pack(expand=True, fill="both")
-        buttons_frame.grid_rowconfigure(0, weight=1)
-        buttons_frame.grid_rowconfigure(1, weight=1)
-        buttons_frame.grid_columnconfigure(0, weight=1)
-        buttons_frame.grid_columnconfigure(1, weight=1)
-
-        start_button = ctk.CTkButton(
-            buttons_frame,
-            text="Iniciar Conteo",
-            font=fuente(22, "bold"),
-            height=88,
-            fg_color=COLOR["exito"],
-            hover_color=COLOR["exito_hover"],
-            corner_radius=16,
-            border_width=0,
-            border_spacing=15,
-            command=self.abrir_conteo,
+        self._tarjeta_accion(
+            tarjetas,
+            columna=0,
+            titulo="Iniciar Conteo",
+            descripcion="Conecta una cámara (local, IP o tu móvil), define la línea "
+            "virtual y cuenta en tiempo real con detección y seguimiento por IA.",
+            texto_boton="Ir al conteo",
+            color=COLOR["exito"],
+            color_hover=COLOR["exito_hover"],
+            comando=lambda: self.controlador.mostrar_vista("conteo"),
         )
-        start_button.grid(row=0, column=0, columnspan=2, padx=20, pady=(15, 20), sticky="ew")
 
-        history_button = ctk.CTkButton(
-            buttons_frame,
-            text="Ver Historial",
-            font=fuente(18, "bold"),
-            height=72,
-            fg_color=COLOR["primario"],
-            hover_color=COLOR["primario_hover"],
-            corner_radius=16,
-            border_width=0,
-            command=self.abrir_historial,
+        self._tarjeta_accion(
+            tarjetas,
+            columna=1,
+            titulo="Historial",
+            descripcion="Consulta las sesiones registradas, estadísticas generales "
+            "y administra los lotes cerrados.",
+            texto_boton="Ver historial",
+            color=COLOR["primario"],
+            color_hover=COLOR["primario_hover"],
+            comando=lambda: self.controlador.mostrar_vista("historial"),
         )
-        history_button.grid(row=1, column=0, padx=(20, 12), pady=15, sticky="ew")
-
-        settings_button = ctk.CTkButton(
-            buttons_frame,
-            text="Configuración",
-            font=fuente(18, "bold"),
-            height=72,
-            fg_color=COLOR["advertencia"],
-            hover_color=COLOR["advertencia_hover"],
-            corner_radius=16,
-            border_width=0,
-            command=self.abrir_configuracion,
-        )
-        settings_button.grid(row=1, column=1, padx=(12, 20), pady=15, sticky="ew")
 
         # ===== INFORMACIÓN DEL SISTEMA =====
-        info_container = ctk.CTkFrame(
-            main_frame,
-            corner_radius=16,
+        info = ctk.CTkFrame(
+            contenido,
             fg_color=COLOR["panel"],
-            border_width=1,
-            border_color=COLOR["borde"],
-        )
-        info_container.pack(fill="x", padx=5, pady=(0, 15))
-
-        info_title_frame = ctk.CTkFrame(info_container, fg_color="transparent")
-        info_title_frame.pack(fill="x", padx=20, pady=(20, 15))
-
-        info_title = ctk.CTkLabel(
-            info_title_frame,
-            text="Información del Sistema",
-            font=fuente(18, "bold"),
-            anchor="w",
-            text_color=COLOR["primario"],
-        )
-        info_title.pack(side="left")
-
-        separator2 = ctk.CTkFrame(info_title_frame, height=2, fg_color=COLOR["primario"], width=50)
-        separator2.pack(side="left", padx=(10, 0), fill="x", expand=True)
-
-        info_inner = ctk.CTkFrame(info_container, fg_color="transparent")
-        info_inner.pack(fill="x", padx=25, pady=(0, 20))
-
-        session_frame = ctk.CTkFrame(info_inner, fg_color="transparent")
-        session_frame.pack(fill="x", pady=5)
-
-        session_title = ctk.CTkLabel(
-            session_frame,
-            text="Última sesión:",
-            font=fuente(15, "bold"),
-            width=120,
-            anchor="w",
-            text_color=COLOR["texto"],
-        )
-        session_title.pack(side="left", padx=(0, 10))
-
-        self.session_label = ctk.CTkLabel(
-            session_frame,
-            text="No registrada",
-            font=fuente(15),
-            text_color=COLOR["texto_suave"],
-            anchor="w",
-        )
-        self.session_label.pack(side="left", fill="x", expand=True)
-
-        model_frame = ctk.CTkFrame(info_inner, fg_color="transparent")
-        model_frame.pack(fill="x", pady=5)
-
-        model_title = ctk.CTkLabel(
-            model_frame,
-            text="Modelo AI:",
-            font=fuente(15, "bold"),
-            width=120,
-            anchor="w",
-            text_color=COLOR["texto"],
-        )
-        model_title.pack(side="left", padx=(0, 10))
-
-        self.model_label = ctk.CTkLabel(
-            model_frame,
-            text=self._describir_modelo(),
-            font=fuente(15),
-            text_color=COLOR["texto_suave"],
-            anchor="w",
-        )
-        self.model_label.pack(side="left", fill="x", expand=True)
-
-        # ===== VERSIÓN =====
-        version_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-        version_frame.pack(side="bottom", fill="x", pady=(0, 8))
-
-        version_label = ctk.CTkLabel(
-            version_frame,
-            text="OPSIS METER DEMO 0.3 BY ENIGMA",
-            font=fuente(11),
-            text_color=COLOR["texto_version"],
-        )
-        version_label.pack()
-
-        # ===== ESTADO =====
-        status_container = ctk.CTkFrame(
-            main_frame,
             corner_radius=16,
-            fg_color=COLOR["panel_oscuro"],
             border_width=1,
             border_color=COLOR["borde"],
         )
-        status_container.pack(fill="x", padx=5, pady=(0, 5), side="bottom")
+        info.pack(fill="x", pady=(24, 0))
 
-        status_inner = ctk.CTkFrame(status_container, fg_color="transparent")
-        status_inner.pack(fill="x", padx=20, pady=15)
+        info_inner = ctk.CTkFrame(info, fg_color="transparent")
+        info_inner.pack(fill="x", padx=24, pady=20)
 
-        status_title_label = ctk.CTkLabel(
-            status_inner,
-            text="Estado:",
+        info_titulo = ctk.CTkLabel(
+            info_inner,
+            text="Información del Sistema",
+            font=fuente(16, "bold"),
+            text_color=COLOR["primario"],
+            anchor="w",
+        )
+        info_titulo.pack(fill="x", pady=(0, 12))
+
+        self.model_label = self._fila_info(info_inner, "Modelo AI", self._describir_modelo())
+        self.session_label = self._fila_info(info_inner, "Última sesión", "No registrada")
+
+    def _tarjeta_accion(
+        self, contenedor, columna, titulo, descripcion, texto_boton, color, color_hover, comando
+    ):
+        tarjeta = ctk.CTkFrame(
+            contenedor,
+            fg_color=COLOR["panel"],
+            corner_radius=16,
+            border_width=1,
+            border_color=COLOR["borde"],
+        )
+        tarjeta.grid(row=0, column=columna, padx=(0 if columna == 0 else 16, 0), sticky="nsew")
+
+        interno = ctk.CTkFrame(tarjeta, fg_color="transparent")
+        interno.pack(fill="both", expand=True, padx=24, pady=22)
+
+        etiqueta_titulo = ctk.CTkLabel(
+            interno, text=titulo, font=fuente(20, "bold"), text_color=COLOR["texto"], anchor="w"
+        )
+        etiqueta_titulo.pack(fill="x")
+
+        etiqueta_desc = ctk.CTkLabel(
+            interno,
+            text=descripcion,
+            font=fuente(13),
+            text_color=COLOR["texto_suave"],
+            anchor="w",
+            justify="left",
+            wraplength=380,
+        )
+        etiqueta_desc.pack(fill="x", pady=(6, 16))
+
+        boton = ctk.CTkButton(
+            interno,
+            text=texto_boton,
             font=fuente(15, "bold"),
+            height=44,
+            corner_radius=12,
+            fg_color=color,
+            hover_color=color_hover,
+            command=comando,
+        )
+        boton.pack(anchor="w")
+
+    def _fila_info(self, contenedor, titulo, valor):
+        fila = ctk.CTkFrame(contenedor, fg_color="transparent")
+        fila.pack(fill="x", pady=3)
+
+        etiqueta = ctk.CTkLabel(
+            fila,
+            text=f"{titulo}:",
+            font=fuente(14, "bold"),
+            width=130,
             anchor="w",
             text_color=COLOR["texto"],
         )
-        status_title_label.pack(side="left", padx=(0, 12))
+        etiqueta.pack(side="left", padx=(0, 10))
 
-        self.status_indicator = ctk.CTkFrame(
-            status_inner, width=10, height=10, corner_radius=5, fg_color=COLOR["exito"]
+        valor_label = ctk.CTkLabel(
+            fila, text=valor, font=fuente(14), text_color=COLOR["texto_suave"], anchor="w"
         )
-        self.status_indicator.pack(side="left", padx=(0, 10))
-
-        self.status_label = ctk.CTkLabel(
-            status_inner,
-            text="Listo para iniciar",
-            font=fuente(15, "bold"),
-            text_color=COLOR["exito"],
-            anchor="w",
-        )
-        self.status_label.pack(side="left", fill="x", expand=True)
+        valor_label.pack(side="left", fill="x", expand=True)
+        return valor_label
 
     def _describir_modelo(self) -> str:
         """Describe el modelo ONNX configurado, si existe."""
-        # Import local: evita cargar dotenv/config si solo se navega la UI
         from opsis_meter.compartido.configuracion import cargar_configuracion
 
         config = cargar_configuracion()
         if config.ruta_modelo:
             return config.ruta_modelo.name
-        return "No configurado"
-
-    def abrir_conteo(self):
-        """Abre la ventana de conteo."""
-        # Import diferido: la ventana de conteo carga OpenCV
-        from opsis_meter.conteo.ventana import VentanaConteo
-
-        self._fijar_estado("En conteo...", COLOR["advertencia"])
-        self.withdraw()
-        ventana = VentanaConteo(self)
-        ventana.focus()
-
-    def abrir_historial(self):
-        """Abre la ventana de historial."""
-        from opsis_meter.historial.ventana import VentanaHistorial
-
-        self._fijar_estado("Consultando historial...", COLOR["advertencia"])
-        self.withdraw()
-        ventana = VentanaHistorial(self)
-        ventana.focus()
-
-    def abrir_configuracion(self):
-        """Abre la ventana de configuración."""
-        # TODO Bloque 6: ventana de configuración (cámara, modelo, credenciales)
-        pass
-
-    def _al_mostrarse(self, event=None):
-        """Restaura el estado cuando la ventana vuelve a mostrarse."""
-        self._fijar_estado("Listo para iniciar", COLOR["exito"])
-
-    def _fijar_estado(self, texto: str, color: str):
-        self.status_label.configure(text=texto, text_color=color)
-        self.status_indicator.configure(fg_color=color)
+        return "No configurado (modo vista previa)"

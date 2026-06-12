@@ -1,5 +1,5 @@
 """
-Ventana de Conteo - Opsis Meter
+Vista de Conteo - Opsis Meter
 Vista de cámara y control de captura.
 
 Tiene dos modos:
@@ -28,7 +28,6 @@ from opsis_meter.captura.camara import ESTADO_ERROR, FlujoCamara
 from opsis_meter.captura.dispositivos import detectar_camaras
 from opsis_meter.compartido.configuracion import cargar_configuracion
 from opsis_meter.compartido.tema import COLOR, fuente
-from opsis_meter.compartido.ventanas import centrar_ventana
 from opsis_meter.conteo.mensajes import (
     CMD_DETENER,
     CMD_FPS,
@@ -44,17 +43,13 @@ ESPERA_CIERRE_PROCESO = 5.0  # segundos para que el proceso cierre el lote
 TEXTO_SIN_SENAL = "Sin señal\n\nSelecciona una fuente de video,\npruébala e inicia la captura o el conteo"
 
 
-class VentanaConteo(ctk.CTkToplevel):
-    """Ventana de conteo con cámara."""
+class VistaConteo(ctk.CTkFrame):
+    """Vista de conteo con cámara."""
 
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, parent, controlador=None):
+        super().__init__(parent, fg_color="transparent")
 
-        self.title("Opsis Meter - Iniciar Conteo")
-        self.geometry("1200x800")
-        self.minsize(1100, 750)
-
-        self.parent = parent
+        self.controlador = controlador
 
         # Captura de video (vista previa)
         self.flujo: FlujoCamara | None = None
@@ -72,10 +67,6 @@ class VentanaConteo(ctk.CTkToplevel):
         self.linea_orientacion = "vertical"
         self.linea_posicion = 0.5
 
-        # Pantalla completa
-        self.fullscreen_state = False
-        self.normal_geometry = None
-
         # Fuente de video: 'local', 'ip' o 'movil'
         self.tipo_camara = "local"
         self.dispositivos = []
@@ -84,11 +75,6 @@ class VentanaConteo(ctk.CTkToplevel):
 
         self.crear_widgets()
         self.detectar_dispositivos()
-        centrar_ventana(self)
-
-        self.protocol("WM_DELETE_WINDOW", self.al_cerrar)
-        self.bind("<F11>", self.alternar_pantalla_completa)
-        self.bind("<Escape>", self.salir_pantalla_completa)
 
     # ----- Detección de dispositivos (en hilo secundario) -----
 
@@ -117,36 +103,20 @@ class VentanaConteo(ctk.CTkToplevel):
     def crear_widgets(self):
         """Crea los widgets de la interfaz."""
 
-        main_frame = ctk.CTkFrame(self, fg_color=COLOR["fondo"])
-        main_frame.pack(fill="both", expand=True, padx=25, pady=25)
+        main_frame = ctk.CTkFrame(self, fg_color="transparent")
+        main_frame.pack(fill="both", expand=True, padx=32, pady=28)
 
-        # ===== SECCIÓN SUPERIOR: título y regreso =====
-        top_frame = ctk.CTkFrame(main_frame, fg_color=COLOR["panel"], corner_radius=15)
-        top_frame.pack(fill="x", pady=(0, 20), padx=5)
-
-        top_content = ctk.CTkFrame(top_frame, fg_color="transparent")
-        top_content.pack(fill="x", padx=25, pady=18)
+        # ===== ENCABEZADO (delgado: el área grande es para el video) =====
+        encabezado = ctk.CTkFrame(main_frame, fg_color="transparent")
+        encabezado.pack(fill="x", pady=(0, 16))
 
         title_label = ctk.CTkLabel(
-            top_content,
-            text="Iniciar Conteo",
-            font=fuente(32, "bold"),
-            text_color=COLOR["acento"],
+            encabezado,
+            text="Conteo",
+            font=fuente(28, "bold"),
+            text_color=COLOR["texto"],
         )
         title_label.pack(side="left")
-
-        back_button = ctk.CTkButton(
-            top_content,
-            text="Regresar",
-            font=fuente(16, "bold"),
-            height=42,
-            width=160,
-            fg_color=COLOR["neutro"],
-            hover_color=COLOR["neutro_hover"],
-            corner_radius=14,
-            command=self.al_cerrar,
-        )
-        back_button.pack(side="right")
 
         # ===== PANEL IZQUIERDO: vista de cámara =====
         content_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
@@ -983,6 +953,8 @@ class VentanaConteo(ctk.CTkToplevel):
         )
         self.camera_display.configure(text="Iniciando proceso de IA...")
         self._controles_en_conteo(True)
+        if self.controlador:
+            self.controlador.fijar_estado("Contando lote...", COLOR["advertencia"])
         self._procesar_eventos_ia()
 
     def detener_conteo(self):
@@ -1061,6 +1033,8 @@ class VentanaConteo(ctk.CTkToplevel):
         self.camera_display.configure(image="", text=TEXTO_SIN_SENAL)
         self.camera_display.image = None
         self.fps_label.configure(text="FPS: 0")
+        if self.controlador:
+            self.controlador.fijar_estado("Listo", COLOR["exito"])
 
         if error:
             self.estado_conteo_label.configure(text=error, text_color=COLOR["peligro"])
@@ -1113,29 +1087,12 @@ class VentanaConteo(ctk.CTkToplevel):
         self.linea_orientacion_menu.configure(state=estado_combo)
         self.linea_posicion_slider.configure(state=estado)
 
-    # ----- Pantalla completa y cierre -----
+    # ----- Limpieza -----
 
-    def alternar_pantalla_completa(self, event=None):
-        """Alterna entre modo pantalla completa y ventana normal."""
-        self.fullscreen_state = not self.fullscreen_state
-        if self.fullscreen_state:
-            self.normal_geometry = self.geometry()
-            self.attributes("-fullscreen", True)
-        else:
-            self.attributes("-fullscreen", False)
-            if self.normal_geometry:
-                self.geometry(self.normal_geometry)
-            else:
-                centrar_ventana(self)
-
-    def salir_pantalla_completa(self, event=None):
-        if self.fullscreen_state:
-            self.alternar_pantalla_completa()
-
-    def al_cerrar(self):
-        """Maneja el cierre de la ventana."""
+    def limpiar(self):
+        """Libera la cámara y el proceso de IA (al cerrar la aplicación)."""
         if self.conteo_activo and self.proceso_ia is not None:
-            # Cierre de ventana: no esperamos el resumen, solo soltar la cámara
+            # Cierre de la app: no esperamos el resumen, solo soltar la cámara
             self.conteo_activo = False
             try:
                 self.cola_comandos.put_nowait((CMD_DETENER,))
@@ -1145,5 +1102,3 @@ class VentanaConteo(ctk.CTkToplevel):
             if self.proceso_ia.is_alive():
                 self.proceso_ia.terminate()
         self.detener_captura()
-        self.destroy()
-        self.parent.deiconify()

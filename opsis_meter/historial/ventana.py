@@ -1,5 +1,5 @@
 """
-Ventana de Historial - Opsis Meter
+Vista de Historial - Opsis Meter
 Muestra el registro de conteos de limones desde Supabase.
 Las consultas de red corren en hilos secundarios para no congelar la UI.
 """
@@ -13,22 +13,17 @@ import customtkinter as ctk
 
 from opsis_meter.compartido.configuracion import cargar_configuracion
 from opsis_meter.compartido.tema import COLOR, fuente
-from opsis_meter.compartido.ventanas import centrar_ventana
 
 LIMITE_REGISTROS = 200
 
 
-class VentanaHistorial(ctk.CTkToplevel):
-    """Ventana de historial de conteos."""
+class VistaHistorial(ctk.CTkFrame):
+    """Vista de historial de conteos."""
 
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, parent, controlador=None):
+        super().__init__(parent, fg_color="transparent")
 
-        self.title("Opsis Meter - Historial de Conteos")
-        self.geometry("1100x750")
-        self.minsize(1000, 700)
-
-        self.parent = parent
+        self.controlador = controlador
         self._cargando = False
 
         self.supabase = None
@@ -36,9 +31,10 @@ class VentanaHistorial(ctk.CTkToplevel):
 
         self.crear_widgets()
         self.cargar_datos()
-        centrar_ventana(self)
 
-        self.protocol("WM_DELETE_WINDOW", self.al_cerrar)
+    def al_mostrar(self):
+        """Refresca los datos cada vez que la vista pasa al frente."""
+        self.cargar_datos()
 
     def _init_supabase(self):
         """Inicializa la conexión con Supabase si está configurada."""
@@ -56,8 +52,8 @@ class VentanaHistorial(ctk.CTkToplevel):
     def crear_widgets(self):
         """Crea los widgets de la interfaz."""
 
-        main_frame = ctk.CTkFrame(self, fg_color=COLOR["fondo"])
-        main_frame.pack(fill="both", expand=True, padx=25, pady=25)
+        main_frame = ctk.CTkFrame(self, fg_color="transparent")
+        main_frame.pack(fill="both", expand=True, padx=32, pady=28)
 
         # ===== SECCIÓN SUPERIOR =====
         top_frame = ctk.CTkFrame(main_frame, fg_color=COLOR["panel"], corner_radius=15)
@@ -74,18 +70,19 @@ class VentanaHistorial(ctk.CTkToplevel):
         )
         title_label.pack(side="left")
 
-        back_button = ctk.CTkButton(
+        # Botón actualizar (la navegación vive en la barra lateral)
+        self.refresh_button = ctk.CTkButton(
             top_content,
-            text="Regresar al Menú",
-            font=fuente(15, "bold"),
-            height=40,
-            width=180,
+            text="Actualizar",
+            font=fuente(14, "bold"),
+            height=38,
+            width=130,
             fg_color=COLOR["neutro"],
             hover_color=COLOR["neutro_hover"],
             corner_radius=12,
-            command=self.al_cerrar,
+            command=self.cargar_datos,
         )
-        back_button.pack(side="right")
+        self.refresh_button.pack(side="right")
 
         # ===== ESTADÍSTICAS =====
         stats_frame = ctk.CTkFrame(main_frame, corner_radius=15, fg_color=COLOR["panel"])
@@ -140,18 +137,6 @@ class VentanaHistorial(ctk.CTkToplevel):
 
         self.records_scroll = ctk.CTkScrollableFrame(table_inner, fg_color="transparent")
         self.records_scroll.pack(fill="both", expand=True)
-
-        self.refresh_button = ctk.CTkButton(
-            table_inner,
-            text="Actualizar",
-            font=fuente(14, "bold"),
-            height=35,
-            fg_color=COLOR["acento"],
-            hover_color=COLOR["acento_hover"],
-            corner_radius=10,
-            command=self.cargar_datos,
-        )
-        self.refresh_button.pack(pady=(15, 0))
 
     def _tarjeta_estadistica(self, contenedor, columna, titulo):
         """Crea una tarjeta de estadística y devuelve el label del valor."""
@@ -359,8 +344,3 @@ class VentanaHistorial(ctk.CTkToplevel):
                 )
 
         threading.Thread(target=_eliminar, daemon=True).start()
-
-    def al_cerrar(self):
-        """Maneja el cierre de la ventana."""
-        self.destroy()
-        self.parent.deiconify()
