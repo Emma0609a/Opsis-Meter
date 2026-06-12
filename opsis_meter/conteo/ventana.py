@@ -316,7 +316,7 @@ class VentanaConteo(ctk.CTkToplevel):
             values=["Cámara Local", "Cámara IP", "Cámara de Móvil"],
             font=fuente(14),
             command=self.al_cambiar_tipo_camara,
-            state="normal",
+            state="readonly",
             height=42,
             corner_radius=12,
             border_width=2,
@@ -344,7 +344,7 @@ class VentanaConteo(ctk.CTkToplevel):
             values=["Cámara 0"],
             font=fuente(14),
             command=self.al_cambiar_dispositivo,
-            state="normal",
+            state="readonly",
             height=42,
             corner_radius=12,
             border_width=2,
@@ -405,7 +405,7 @@ class VentanaConteo(ctk.CTkToplevel):
             values=["IP Webcam (Android)", "DroidCam (Android/iOS)"],
             font=fuente(14),
             command=self._al_cambiar_app_movil,
-            state="normal",
+            state="readonly",
             height=42,
             corner_radius=12,
             border_width=2,
@@ -500,7 +500,7 @@ class VentanaConteo(ctk.CTkToplevel):
             values=["640x480", "800x600", "1024x768", "1280x720", "1920x1080"],
             font=fuente(14),
             command=self.al_cambiar_resolucion,
-            state="normal",
+            state="readonly",
             height=42,
             corner_radius=12,
             border_width=2,
@@ -528,7 +528,7 @@ class VentanaConteo(ctk.CTkToplevel):
             values=["Vertical", "Horizontal"],
             font=fuente(14),
             command=self.al_cambiar_orientacion_linea,
-            state="normal",
+            state="readonly",
             height=42,
             corner_radius=12,
             border_width=2,
@@ -871,16 +871,17 @@ class VentanaConteo(ctk.CTkToplevel):
         self.start_button.configure(state="disabled" if capturando else "normal")
         self.stop_button.configure(state="normal" if capturando else "disabled")
         estado = "disabled" if capturando else "normal"
-        self.camera_type_menu.configure(state=estado)
+        estado_combo = "disabled" if capturando else "readonly"
+        self.camera_type_menu.configure(state=estado_combo)
         self.probar_button.configure(state=estado)
         if self.tipo_camara == "ip":
             self.ip_camera_entry.configure(state=estado)
         elif self.tipo_camara == "movil":
-            self.movil_app_menu.configure(state=estado)
+            self.movil_app_menu.configure(state=estado_combo)
             self.movil_ip_entry.configure(state=estado)
             self.movil_puerto_entry.configure(state=estado)
         else:
-            self.device_menu.configure(state=estado)
+            self.device_menu.configure(state=estado_combo)
 
     def _refrescar_vista(self):
         """Bucle de refresco de la vista previa (hilo principal, vía after)."""
@@ -1080,7 +1081,7 @@ class VentanaConteo(ctk.CTkToplevel):
                 fg_color=COLOR["peligro"],
                 hover_color=COLOR["peligro_hover"],
                 command=self.detener_conteo,
-                state="normal",
+                state="readonly",
             )
         else:
             self.count_button.configure(
@@ -1088,21 +1089,22 @@ class VentanaConteo(ctk.CTkToplevel):
                 fg_color=COLOR["acento"],
                 hover_color=COLOR["acento_hover"],
                 command=self.iniciar_conteo,
-                state="normal",
+                state="readonly",
             )
 
         estado = "disabled" if contando else "normal"
+        estado_combo = "disabled" if contando else "readonly"
         self.start_button.configure(state=estado)
         self.stop_button.configure(state="disabled")
-        self.camera_type_menu.configure(state=estado)
-        self.device_menu.configure(state=estado)
+        self.camera_type_menu.configure(state=estado_combo)
+        self.device_menu.configure(state=estado_combo)
         self.ip_camera_entry.configure(state=estado)
-        self.movil_app_menu.configure(state=estado)
+        self.movil_app_menu.configure(state=estado_combo)
         self.movil_ip_entry.configure(state=estado)
         self.movil_puerto_entry.configure(state=estado)
         self.probar_button.configure(state=estado)
-        self.resolution_menu.configure(state=estado)
-        self.linea_orientacion_menu.configure(state=estado)
+        self.resolution_menu.configure(state=estado_combo)
+        self.linea_orientacion_menu.configure(state=estado_combo)
         self.linea_posicion_slider.configure(state=estado)
 
     # ----- Pantalla completa y cierre -----
