@@ -146,9 +146,9 @@ class AplicacionOpsis(ctk.CTk):
             font=fuente(15, "bold"),
             height=44,
             anchor="w",
-            corner_radius=10,
+            corner_radius=8,
             fg_color="transparent",
-            hover_color=COLOR["panel"],
+            hover_color=COLOR["panel_hover"],
             text_color=COLOR["texto_suave"],
             command=lambda: self.mostrar_vista(clave),
         )

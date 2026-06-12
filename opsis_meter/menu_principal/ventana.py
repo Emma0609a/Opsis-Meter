@@ -5,6 +5,7 @@ Panel de bienvenida con accesos rápidos e información del sistema.
 
 import customtkinter as ctk
 
+from opsis_meter.compartido.componentes import boton, tarjeta
 from opsis_meter.compartido.tema import COLOR, fuente
 
 
@@ -52,8 +53,7 @@ class VistaInicio(ctk.CTkFrame):
             descripcion="Conecta una cámara (local, IP o tu móvil), define la línea "
             "virtual y cuenta en tiempo real con detección y seguimiento por IA.",
             texto_boton="Ir al conteo",
-            color=COLOR["exito"],
-            color_hover=COLOR["exito_hover"],
+            variante="primario",
             comando=lambda: self.controlador.mostrar_vista("conteo"),
         )
 
@@ -64,19 +64,12 @@ class VistaInicio(ctk.CTkFrame):
             descripcion="Consulta las sesiones registradas, estadísticas generales "
             "y administra los lotes cerrados.",
             texto_boton="Ver historial",
-            color=COLOR["primario"],
-            color_hover=COLOR["primario_hover"],
+            variante="secundario",
             comando=lambda: self.controlador.mostrar_vista("historial"),
         )
 
         # ===== INFORMACIÓN DEL SISTEMA =====
-        info = ctk.CTkFrame(
-            contenido,
-            fg_color=COLOR["panel"],
-            corner_radius=16,
-            border_width=1,
-            border_color=COLOR["borde"],
-        )
+        info = tarjeta(contenido)
         info.pack(fill="x", pady=(24, 0))
 
         info_inner = ctk.CTkFrame(info, fg_color="transparent")
@@ -86,7 +79,7 @@ class VistaInicio(ctk.CTkFrame):
             info_inner,
             text="Información del Sistema",
             font=fuente(16, "bold"),
-            text_color=COLOR["primario"],
+            text_color=COLOR["texto"],
             anchor="w",
         )
         info_titulo.pack(fill="x", pady=(0, 12))
@@ -95,18 +88,12 @@ class VistaInicio(ctk.CTkFrame):
         self.session_label = self._fila_info(info_inner, "Última sesión", "No registrada")
 
     def _tarjeta_accion(
-        self, contenedor, columna, titulo, descripcion, texto_boton, color, color_hover, comando
+        self, contenedor, columna, titulo, descripcion, texto_boton, variante, comando
     ):
-        tarjeta = ctk.CTkFrame(
-            contenedor,
-            fg_color=COLOR["panel"],
-            corner_radius=16,
-            border_width=1,
-            border_color=COLOR["borde"],
-        )
-        tarjeta.grid(row=0, column=columna, padx=(0 if columna == 0 else 16, 0), sticky="nsew")
+        panel = tarjeta(contenedor)
+        panel.grid(row=0, column=columna, padx=(0 if columna == 0 else 16, 0), sticky="nsew")
 
-        interno = ctk.CTkFrame(tarjeta, fg_color="transparent")
+        interno = ctk.CTkFrame(panel, fg_color="transparent")
         interno.pack(fill="both", expand=True, padx=24, pady=22)
 
         etiqueta_titulo = ctk.CTkLabel(
@@ -125,17 +112,8 @@ class VistaInicio(ctk.CTkFrame):
         )
         etiqueta_desc.pack(fill="x", pady=(6, 16))
 
-        boton = ctk.CTkButton(
-            interno,
-            text=texto_boton,
-            font=fuente(15, "bold"),
-            height=44,
-            corner_radius=12,
-            fg_color=color,
-            hover_color=color_hover,
-            command=comando,
-        )
-        boton.pack(anchor="w")
+        accion = boton(interno, texto_boton, comando, variante=variante, alto=42, tamano=14)
+        accion.pack(anchor="w")
 
     def _fila_info(self, contenedor, titulo, valor):
         fila = ctk.CTkFrame(contenedor, fg_color="transparent")

@@ -11,6 +11,7 @@ from datetime import datetime
 
 import customtkinter as ctk
 
+from opsis_meter.compartido.componentes import boton
 from opsis_meter.compartido.configuracion import cargar_configuracion
 from opsis_meter.compartido.tema import COLOR, fuente
 
@@ -56,36 +57,33 @@ class VistaHistorial(ctk.CTkFrame):
         main_frame.pack(fill="both", expand=True, padx=32, pady=28)
 
         # ===== SECCIÓN SUPERIOR =====
-        top_frame = ctk.CTkFrame(main_frame, fg_color=COLOR["panel"], corner_radius=15)
+        top_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
         top_frame.pack(fill="x", pady=(0, 20), padx=5)
 
         top_content = ctk.CTkFrame(top_frame, fg_color="transparent")
-        top_content.pack(fill="x", padx=25, pady=18)
+        top_content.pack(fill="x")
 
         title_label = ctk.CTkLabel(
             top_content,
-            text="Historial de Conteos",
+            text="Historial",
             font=fuente(28, "bold"),
-            text_color=COLOR["acento"],
+            text_color=COLOR["texto"],
         )
         title_label.pack(side="left")
 
         # Botón actualizar (la navegación vive en la barra lateral)
-        self.refresh_button = ctk.CTkButton(
+        self.refresh_button = boton(
             top_content,
-            text="Actualizar",
-            font=fuente(14, "bold"),
-            height=38,
+            "Actualizar",
+            self.cargar_datos,
+            variante="secundario",
+            alto=38,
             width=130,
-            fg_color=COLOR["neutro"],
-            hover_color=COLOR["neutro_hover"],
-            corner_radius=12,
-            command=self.cargar_datos,
         )
         self.refresh_button.pack(side="right")
 
         # ===== ESTADÍSTICAS =====
-        stats_frame = ctk.CTkFrame(main_frame, corner_radius=15, fg_color=COLOR["panel"])
+        stats_frame = ctk.CTkFrame(main_frame, corner_radius=12, fg_color=COLOR["panel"], border_width=1, border_color=COLOR["borde"])
         stats_frame.pack(fill="x", padx=5, pady=(0, 20))
 
         stats_inner = ctk.CTkFrame(stats_frame, fg_color="transparent")
@@ -94,10 +92,10 @@ class VistaHistorial(ctk.CTkFrame):
         stats_title = ctk.CTkLabel(
             stats_inner,
             text="Estadísticas Generales",
-            font=fuente(18, "bold"),
-            text_color=COLOR["acento"],
+            font=fuente(16, "bold"),
+            text_color=COLOR["texto"],
         )
-        stats_title.pack(anchor="w", pady=(0, 15))
+        stats_title.pack(anchor="w", pady=(0, 14))
 
         stats_grid = ctk.CTkFrame(stats_inner, fg_color="transparent")
         stats_grid.pack(fill="x")
@@ -109,7 +107,7 @@ class VistaHistorial(ctk.CTkFrame):
         self.avg_lemons_label = self._tarjeta_estadistica(stats_grid, 2, "Promedio por sesión")
 
         # ===== TABLA DE REGISTROS =====
-        table_frame = ctk.CTkFrame(main_frame, corner_radius=15, fg_color=COLOR["panel"])
+        table_frame = ctk.CTkFrame(main_frame, corner_radius=12, fg_color=COLOR["panel"], border_width=1, border_color=COLOR["borde"])
         table_frame.pack(fill="both", expand=True, padx=5)
 
         table_inner = ctk.CTkFrame(table_frame, fg_color="transparent")
@@ -293,16 +291,15 @@ class VistaHistorial(ctk.CTkFrame):
             )
             etiqueta.grid(row=0, column=i, padx=5, pady=6, sticky="w")
 
-        delete_btn = ctk.CTkButton(
+        delete_btn = boton(
             row_frame,
-            text="Eliminar",
-            font=fuente(11),
+            "Eliminar",
+            lambda sid=sesion.get("id"): self.eliminar_sesion(sid),
+            variante="fantasma",
+            alto=26,
+            tamano=11,
             width=80,
-            height=25,
-            fg_color=COLOR["peligro"],
-            hover_color=COLOR["peligro_hover"],
-            corner_radius=8,
-            command=lambda sid=sesion.get("id"): self.eliminar_sesion(sid),
+            text_color=COLOR["peligro"],
         )
         delete_btn.grid(row=0, column=6, padx=5, pady=6)
 

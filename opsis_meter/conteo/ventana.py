@@ -26,6 +26,7 @@ from PIL import Image, ImageTk
 
 from opsis_meter.captura.camara import ESTADO_ERROR, FlujoCamara
 from opsis_meter.captura.dispositivos import detectar_camaras
+from opsis_meter.compartido.componentes import boton
 from opsis_meter.compartido.configuracion import cargar_configuracion
 from opsis_meter.compartido.tema import COLOR, fuente
 from opsis_meter.conteo.mensajes import (
@@ -122,7 +123,7 @@ class VistaConteo(ctk.CTkFrame):
         content_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
         content_frame.pack(fill="both", expand=True)
 
-        camera_frame = ctk.CTkFrame(content_frame, corner_radius=18, fg_color=COLOR["panel"])
+        camera_frame = ctk.CTkFrame(content_frame, corner_radius=12, fg_color=COLOR["panel"], border_width=1, border_color=COLOR["borde"])
         camera_frame.pack(side="left", fill="both", expand=True, padx=(0, 20))
 
         camera_inner = ctk.CTkFrame(camera_frame, fg_color="transparent")
@@ -159,7 +160,7 @@ class VistaConteo(ctk.CTkFrame):
 
         # ===== PANEL DERECHO: controles =====
         controls_frame = ctk.CTkFrame(
-            content_frame, corner_radius=18, fg_color=COLOR["panel"], width=380
+            content_frame, corner_radius=12, fg_color=COLOR["panel"], border_width=1, border_color=COLOR["borde"], width=380
         )
         controls_frame.pack(side="right", fill="y")
         controls_frame.pack_propagate(False)
@@ -170,16 +171,16 @@ class VistaConteo(ctk.CTkFrame):
         controls_title = ctk.CTkLabel(
             controls_inner,
             text="Controles",
-            font=fuente(22, "bold"),
-            text_color=COLOR["acento"],
+            font=fuente(20, "bold"),
+            text_color=COLOR["texto"],
         )
-        controls_title.pack(pady=(0, 20))
+        controls_title.pack(pady=(0, 18))
 
         # ===== CONTADOR EN VIVO =====
         contador_frame = ctk.CTkFrame(
             controls_inner,
             fg_color=COLOR["panel_oscuro"],
-            corner_radius=14,
+            corner_radius=12,
             border_width=1,
             border_color=COLOR["borde"],
         )
@@ -212,45 +213,31 @@ class VistaConteo(ctk.CTkFrame):
         buttons_frame = ctk.CTkFrame(controls_inner, fg_color="transparent")
         buttons_frame.pack(fill="x", pady=(0, 25))
 
-        self.count_button = ctk.CTkButton(
+        self.count_button = boton(
             buttons_frame,
-            text="Iniciar Conteo IA",
-            font=fuente(18, "bold"),
-            height=60,
-            fg_color=COLOR["acento"],
-            hover_color=COLOR["acento_hover"],
-            corner_radius=18,
-            border_width=0,
-            border_spacing=10,
-            command=self.iniciar_conteo,
+            "Iniciar Conteo IA",
+            self.iniciar_conteo,
+            variante="primario",
+            alto=52,
+            tamano=16,
         )
-        self.count_button.pack(fill="x", pady=(0, 15))
+        self.count_button.pack(fill="x", pady=(0, 12))
 
-        self.start_button = ctk.CTkButton(
+        self.start_button = boton(
             buttons_frame,
-            text="Iniciar Captura",
-            font=fuente(18, "bold"),
-            height=60,
-            fg_color=COLOR["exito"],
-            hover_color=COLOR["exito_hover"],
-            corner_radius=18,
-            border_width=0,
-            border_spacing=10,
-            command=self.iniciar_captura,
+            "Vista Previa",
+            self.iniciar_captura,
+            variante="secundario",
+            alto=44,
         )
-        self.start_button.pack(fill="x", pady=(0, 15))
+        self.start_button.pack(fill="x", pady=(0, 10))
 
-        self.stop_button = ctk.CTkButton(
+        self.stop_button = boton(
             buttons_frame,
-            text="Detener Captura",
-            font=fuente(18, "bold"),
-            height=60,
-            fg_color=COLOR["peligro"],
-            hover_color=COLOR["peligro_hover"],
-            corner_radius=18,
-            border_width=0,
-            border_spacing=10,
-            command=self.detener_captura,
+            "Detener Vista Previa",
+            self.detener_captura,
+            variante="secundario",
+            alto=44,
             state="disabled",
         )
         self.stop_button.pack(fill="x")
@@ -258,17 +245,17 @@ class VistaConteo(ctk.CTkFrame):
         separator_frame = ctk.CTkFrame(controls_inner, fg_color="transparent")
         separator_frame.pack(fill="x", pady=(0, 20))
 
-        separator = ctk.CTkFrame(separator_frame, height=2, fg_color=COLOR["acento"])
+        separator = ctk.CTkFrame(separator_frame, height=1, fg_color=COLOR["borde"])
         separator.pack(fill="x", padx=10)
 
         # ===== OPCIONES =====
         options_title = ctk.CTkLabel(
             controls_inner,
             text="Opciones",
-            font=fuente(18, "bold"),
-            text_color=COLOR["acento"],
+            font=fuente(16, "bold"),
+            text_color=COLOR["texto"],
         )
-        options_title.pack(pady=(0, 15))
+        options_title.pack(pady=(0, 14))
 
         scrollable_frame = ctk.CTkScrollableFrame(
             controls_inner, fg_color="transparent", corner_radius=10
@@ -447,15 +434,12 @@ class VistaConteo(ctk.CTkFrame):
         self.probar_container = ctk.CTkFrame(scrollable_frame, fg_color="transparent")
         self.probar_container.pack(fill="x", pady=(0, 20))
 
-        self.probar_button = ctk.CTkButton(
+        self.probar_button = boton(
             self.probar_container,
-            text="Probar Conexión",
-            font=fuente(14, "bold"),
-            height=42,
-            fg_color=COLOR["neutro"],
-            hover_color=COLOR["neutro_hover"],
-            corner_radius=12,
-            command=self.probar_conexion,
+            "Probar Conexión",
+            self.probar_conexion,
+            variante="secundario",
+            alto=40,
         )
         self.probar_button.pack(fill="x")
 
@@ -564,17 +548,14 @@ class VistaConteo(ctk.CTkFrame):
         numeric_frame = ctk.CTkFrame(fps_container, fg_color="transparent")
         numeric_frame.pack(fill="x")
 
-        decrease_btn = ctk.CTkButton(
+        decrease_btn = boton(
             numeric_frame,
-            text="-",
-            font=fuente(20, "bold"),
-            width=50,
-            height=42,
-            fg_color=COLOR["neutro"],
-            hover_color=COLOR["neutro_hover"],
-            corner_radius=12,
-            border_width=0,
-            command=lambda: self.fijar_fps(self.fps_limite - 1),
+            "-",
+            lambda: self.fijar_fps(self.fps_limite - 1),
+            variante="secundario",
+            alto=38,
+            tamano=18,
+            width=46,
         )
         decrease_btn.pack(side="left", padx=(0, 12))
 
@@ -601,17 +582,14 @@ class VistaConteo(ctk.CTkFrame):
         )
         fps_unit_short.pack(side="left", padx=(0, 12))
 
-        increase_btn = ctk.CTkButton(
+        increase_btn = boton(
             numeric_frame,
-            text="+",
-            font=fuente(20, "bold"),
-            width=50,
-            height=42,
-            fg_color=COLOR["neutro"],
-            hover_color=COLOR["neutro_hover"],
-            corner_radius=12,
-            border_width=0,
-            command=lambda: self.fijar_fps(self.fps_limite + 1),
+            "+",
+            lambda: self.fijar_fps(self.fps_limite + 1),
+            variante="secundario",
+            alto=38,
+            tamano=18,
+            width=46,
         )
         increase_btn.pack(side="left")
 
