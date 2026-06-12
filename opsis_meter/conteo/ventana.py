@@ -41,6 +41,8 @@ from opsis_meter.conteo.proceso_ia import ejecutar_conteo
 
 ESPERA_CIERRE_PROCESO = 5.0  # segundos para que el proceso cierre el lote
 
+TEXTO_SIN_SENAL = "Sin señal\n\nSelecciona una fuente de video,\npruébala e inicia la captura o el conteo"
+
 
 class VentanaConteo(ctk.CTkToplevel):
     """Ventana de conteo con cámara."""
@@ -179,7 +181,7 @@ class VentanaConteo(ctk.CTkToplevel):
 
         self.camera_display = ctk.CTkLabel(
             self.camera_display_frame,
-            text="",
+            text=TEXTO_SIN_SENAL,
             font=fuente(14),
             text_color=COLOR["texto_apagado"],
         )
@@ -205,7 +207,11 @@ class VentanaConteo(ctk.CTkToplevel):
 
         # ===== CONTADOR EN VIVO =====
         contador_frame = ctk.CTkFrame(
-            controls_inner, fg_color=COLOR["panel_oscuro"], corner_radius=14
+            controls_inner,
+            fg_color=COLOR["panel_oscuro"],
+            corner_radius=14,
+            border_width=1,
+            border_color=COLOR["borde"],
         )
         contador_frame.pack(fill="x", pady=(0, 20))
 
@@ -319,8 +325,8 @@ class VentanaConteo(ctk.CTkToplevel):
             state="readonly",
             height=42,
             corner_radius=12,
-            border_width=2,
-            border_color=COLOR["neutro"],
+            border_width=1,
+            border_color=COLOR["borde"],
             button_color=COLOR["neutro"],
             button_hover_color=COLOR["neutro_hover"],
         )
@@ -347,8 +353,8 @@ class VentanaConteo(ctk.CTkToplevel):
             state="readonly",
             height=42,
             corner_radius=12,
-            border_width=2,
-            border_color=COLOR["neutro"],
+            border_width=1,
+            border_color=COLOR["borde"],
             button_color=COLOR["neutro"],
             button_hover_color=COLOR["neutro_hover"],
         )
@@ -371,8 +377,8 @@ class VentanaConteo(ctk.CTkToplevel):
             font=fuente(13),
             height=42,
             corner_radius=12,
-            border_width=2,
-            border_color=COLOR["neutro"],
+            border_width=1,
+            border_color=COLOR["borde"],
             placeholder_text="rtsp://usuario:contraseña@ip:puerto/ruta",
         )
         self.ip_camera_entry.pack(fill="x", pady=(0, 8))
@@ -408,8 +414,8 @@ class VentanaConteo(ctk.CTkToplevel):
             state="readonly",
             height=42,
             corner_radius=12,
-            border_width=2,
-            border_color=COLOR["neutro"],
+            border_width=1,
+            border_color=COLOR["borde"],
             button_color=COLOR["neutro"],
             button_hover_color=COLOR["neutro_hover"],
         )
@@ -424,8 +430,8 @@ class VentanaConteo(ctk.CTkToplevel):
             font=fuente(13),
             height=42,
             corner_radius=12,
-            border_width=2,
-            border_color=COLOR["neutro"],
+            border_width=1,
+            border_color=COLOR["borde"],
             placeholder_text="IP del móvil (ej. 192.168.1.50)",
         )
         self.movil_ip_entry.pack(side="left", fill="x", expand=True, padx=(0, 8))
@@ -438,8 +444,8 @@ class VentanaConteo(ctk.CTkToplevel):
             height=42,
             corner_radius=12,
             justify="center",
-            border_width=2,
-            border_color=COLOR["neutro"],
+            border_width=1,
+            border_color=COLOR["borde"],
         )
         self.movil_puerto_entry.insert(0, "8080")
         self.movil_puerto_entry.pack(side="left")
@@ -503,8 +509,8 @@ class VentanaConteo(ctk.CTkToplevel):
             state="readonly",
             height=42,
             corner_radius=12,
-            border_width=2,
-            border_color=COLOR["neutro"],
+            border_width=1,
+            border_color=COLOR["borde"],
             button_color=COLOR["neutro"],
             button_hover_color=COLOR["neutro_hover"],
         )
@@ -531,8 +537,8 @@ class VentanaConteo(ctk.CTkToplevel):
             state="readonly",
             height=42,
             corner_radius=12,
-            border_width=2,
-            border_color=COLOR["neutro"],
+            border_width=1,
+            border_color=COLOR["borde"],
             button_color=COLOR["neutro"],
             button_hover_color=COLOR["neutro_hover"],
         )
@@ -609,8 +615,8 @@ class VentanaConteo(ctk.CTkToplevel):
             height=42,
             corner_radius=12,
             justify="center",
-            border_width=2,
-            border_color=COLOR["neutro"],
+            border_width=1,
+            border_color=COLOR["borde"],
         )
         self.fps_entry.insert(0, "30")
         self.fps_entry.pack(side="left", padx=(0, 12))
@@ -862,7 +868,7 @@ class VentanaConteo(ctk.CTkToplevel):
             self.flujo = None
 
         self._controles_en_captura(False)
-        self.camera_display.configure(image="", text="")
+        self.camera_display.configure(image="", text=TEXTO_SIN_SENAL)
         self.camera_display.image = None
         self.fps_label.configure(text="FPS: 0")
 
@@ -1052,7 +1058,7 @@ class VentanaConteo(ctk.CTkToplevel):
         self.cola_comandos = None
 
         self._controles_en_conteo(False)
-        self.camera_display.configure(image="", text="")
+        self.camera_display.configure(image="", text=TEXTO_SIN_SENAL)
         self.camera_display.image = None
         self.fps_label.configure(text="FPS: 0")
 

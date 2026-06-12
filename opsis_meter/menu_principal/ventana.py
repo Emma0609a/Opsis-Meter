@@ -36,7 +36,7 @@ class MenuPrincipal(ctk.CTk):
         main_frame.pack(fill="both", expand=True, padx=25, pady=25)
 
         # ===== ENCABEZADO =====
-        header_frame = ctk.CTkFrame(main_frame, fg_color=COLOR["panel"], corner_radius=20)
+        header_frame = ctk.CTkFrame(main_frame, fg_color=COLOR["panel"], corner_radius=16)
         header_frame.pack(fill="x", pady=(0, 25), padx=5)
 
         header_content = ctk.CTkFrame(header_frame, fg_color="transparent")
@@ -45,21 +45,21 @@ class MenuPrincipal(ctk.CTk):
         title_label = ctk.CTkLabel(
             header_content,
             text="OPSIS METER",
-            font=fuente(48, "bold"),
+            font=fuente(42, "bold"),
             text_color=COLOR["primario"],
         )
-        title_label.pack(pady=(5, 12))
+        title_label.pack(pady=(5, 10))
 
-        separator1 = ctk.CTkFrame(header_content, height=3, fg_color=COLOR["primario"])
+        separator1 = ctk.CTkFrame(header_content, height=2, fg_color=COLOR["primario"])
         separator1.pack(fill="x", pady=(0, 12))
 
         subtitle_label = ctk.CTkLabel(
             header_content,
             text="Sistema Inteligente de Conteo de Limones",
-            font=fuente(18, "bold"),
+            font=fuente(17, "bold"),
             text_color=COLOR["texto"],
         )
-        subtitle_label.pack(pady=(0, 10))
+        subtitle_label.pack(pady=(0, 8))
 
         description_label = ctk.CTkLabel(
             header_content,
@@ -70,7 +70,7 @@ class MenuPrincipal(ctk.CTk):
         description_label.pack()
 
         # ===== BOTONES PRINCIPALES =====
-        buttons_container = ctk.CTkFrame(main_frame, fg_color=COLOR["panel"], corner_radius=20)
+        buttons_container = ctk.CTkFrame(main_frame, fg_color=COLOR["panel"], corner_radius=16)
         buttons_container.pack(fill="both", expand=True, pady=(0, 20), padx=5)
 
         buttons_inner = ctk.CTkFrame(buttons_container, fg_color="transparent")
@@ -86,11 +86,11 @@ class MenuPrincipal(ctk.CTk):
         start_button = ctk.CTkButton(
             buttons_frame,
             text="Iniciar Conteo",
-            font=fuente(24, "bold"),
-            height=100,
+            font=fuente(22, "bold"),
+            height=88,
             fg_color=COLOR["exito"],
             hover_color=COLOR["exito_hover"],
-            corner_radius=22,
+            corner_radius=16,
             border_width=0,
             border_spacing=15,
             command=self.abrir_conteo,
@@ -100,11 +100,11 @@ class MenuPrincipal(ctk.CTk):
         history_button = ctk.CTkButton(
             buttons_frame,
             text="Ver Historial",
-            font=fuente(19, "bold"),
-            height=85,
+            font=fuente(18, "bold"),
+            height=72,
             fg_color=COLOR["primario"],
             hover_color=COLOR["primario_hover"],
-            corner_radius=20,
+            corner_radius=16,
             border_width=0,
             command=self.abrir_historial,
         )
@@ -113,18 +113,24 @@ class MenuPrincipal(ctk.CTk):
         settings_button = ctk.CTkButton(
             buttons_frame,
             text="Configuración",
-            font=fuente(19, "bold"),
-            height=85,
+            font=fuente(18, "bold"),
+            height=72,
             fg_color=COLOR["advertencia"],
             hover_color=COLOR["advertencia_hover"],
-            corner_radius=20,
+            corner_radius=16,
             border_width=0,
             command=self.abrir_configuracion,
         )
         settings_button.grid(row=1, column=1, padx=(12, 20), pady=15, sticky="ew")
 
         # ===== INFORMACIÓN DEL SISTEMA =====
-        info_container = ctk.CTkFrame(main_frame, corner_radius=18, fg_color=COLOR["panel"])
+        info_container = ctk.CTkFrame(
+            main_frame,
+            corner_radius=16,
+            fg_color=COLOR["panel"],
+            border_width=1,
+            border_color=COLOR["borde"],
+        )
         info_container.pack(fill="x", padx=5, pady=(0, 15))
 
         info_title_frame = ctk.CTkFrame(info_container, fg_color="transparent")
@@ -195,14 +201,20 @@ class MenuPrincipal(ctk.CTk):
 
         version_label = ctk.CTkLabel(
             version_frame,
-            text="OPSIS METER DEMO 0.2 BY ENIGMA",
+            text="OPSIS METER DEMO 0.3 BY ENIGMA",
             font=fuente(11),
             text_color=COLOR["texto_version"],
         )
         version_label.pack()
 
         # ===== ESTADO =====
-        status_container = ctk.CTkFrame(main_frame, corner_radius=18, fg_color=COLOR["panel_oscuro"])
+        status_container = ctk.CTkFrame(
+            main_frame,
+            corner_radius=16,
+            fg_color=COLOR["panel_oscuro"],
+            border_width=1,
+            border_color=COLOR["borde"],
+        )
         status_container.pack(fill="x", padx=5, pady=(0, 5), side="bottom")
 
         status_inner = ctk.CTkFrame(status_container, fg_color="transparent")

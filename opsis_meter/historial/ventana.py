@@ -104,21 +104,12 @@ class VentanaHistorial(ctk.CTkToplevel):
 
         stats_grid = ctk.CTkFrame(stats_inner, fg_color="transparent")
         stats_grid.pack(fill="x")
+        for columna in range(3):
+            stats_grid.grid_columnconfigure(columna, weight=1, uniform="stats")
 
-        self.total_sessions_label = ctk.CTkLabel(
-            stats_grid, text="Total Sesiones: 0", font=fuente(14), anchor="w"
-        )
-        self.total_sessions_label.grid(row=0, column=0, padx=(0, 30), sticky="w")
-
-        self.total_lemons_label = ctk.CTkLabel(
-            stats_grid, text="Total Limones: 0", font=fuente(14), anchor="w"
-        )
-        self.total_lemons_label.grid(row=0, column=1, padx=(0, 30), sticky="w")
-
-        self.avg_lemons_label = ctk.CTkLabel(
-            stats_grid, text="Promedio: 0", font=fuente(14), anchor="w"
-        )
-        self.avg_lemons_label.grid(row=0, column=2, sticky="w")
+        self.total_sessions_label = self._tarjeta_estadistica(stats_grid, 0, "Sesiones")
+        self.total_lemons_label = self._tarjeta_estadistica(stats_grid, 1, "Limones contados")
+        self.avg_lemons_label = self._tarjeta_estadistica(stats_grid, 2, "Promedio por sesión")
 
         # ===== TABLA DE REGISTROS =====
         table_frame = ctk.CTkFrame(main_frame, corner_radius=15, fg_color=COLOR["panel"])
@@ -128,7 +119,7 @@ class VentanaHistorial(ctk.CTkToplevel):
         table_inner.pack(fill="both", expand=True, padx=25, pady=25)
 
         header_frame = ctk.CTkFrame(table_inner, fg_color="transparent")
-        header_frame.pack(fill="x", pady=(0, 15))
+        header_frame.pack(fill="x", pady=(0, 8))
 
         encabezados = ["Fecha", "Hora", "Cantidad", "Duración", "Resolución", "FPS", "Acciones"]
         anchos = [100, 80, 80, 100, 120, 70, 100]
@@ -137,11 +128,15 @@ class VentanaHistorial(ctk.CTkToplevel):
             header_label = ctk.CTkLabel(
                 header_frame,
                 text=encabezado,
-                font=fuente(14, "bold"),
+                font=fuente(13, "bold"),
+                text_color=COLOR["texto_suave"],
                 width=ancho,
                 anchor="w",
             )
             header_label.grid(row=0, column=i, padx=5, sticky="w")
+
+        separador_tabla = ctk.CTkFrame(table_inner, height=1, fg_color=COLOR["borde"])
+        separador_tabla.pack(fill="x", pady=(0, 10))
 
         self.records_scroll = ctk.CTkScrollableFrame(table_inner, fg_color="transparent")
         self.records_scroll.pack(fill="both", expand=True)
@@ -157,6 +152,28 @@ class VentanaHistorial(ctk.CTkToplevel):
             command=self.cargar_datos,
         )
         self.refresh_button.pack(pady=(15, 0))
+
+    def _tarjeta_estadistica(self, contenedor, columna, titulo):
+        """Crea una tarjeta de estadística y devuelve el label del valor."""
+        tarjeta = ctk.CTkFrame(
+            contenedor,
+            fg_color=COLOR["panel_oscuro"],
+            corner_radius=12,
+            border_width=1,
+            border_color=COLOR["borde"],
+        )
+        tarjeta.grid(row=0, column=columna, padx=(0 if columna == 0 else 10, 0), sticky="ew")
+
+        valor = ctk.CTkLabel(
+            tarjeta, text="0", font=fuente(26, "bold"), text_color=COLOR["primario"]
+        )
+        valor.pack(pady=(14, 0))
+
+        etiqueta = ctk.CTkLabel(
+            tarjeta, text=titulo, font=fuente(12), text_color=COLOR["texto_suave"]
+        )
+        etiqueta.pack(pady=(0, 12))
+        return valor
 
     # ----- Carga de datos (asíncrona) -----
 
@@ -215,13 +232,13 @@ class VentanaHistorial(ctk.CTkToplevel):
                 COLOR["texto_suave"],
             )
 
-        for sesion in sesiones:
-            self.agregar_fila(sesion)
+        for indice, sesion in enumerate(sesiones):
+            self.agregar_fila(sesion, indice)
 
         stats = self._calcular_estadisticas(sesiones)
-        self.total_sessions_label.configure(text=f"Total Sesiones: {stats['total_sesiones']}")
-        self.total_lemons_label.configure(text=f"Total Limones: {stats['total_limones']}")
-        self.avg_lemons_label.configure(text=f"Promedio: {stats['promedio']}")
+        self.total_sessions_label.configure(text=str(stats["total_sesiones"]))
+        self.total_lemons_label.configure(text=str(stats["total_limones"]))
+        self.avg_lemons_label.configure(text=str(stats["promedio"]))
 
         if not sesiones and self.supabase is not None:
             self._mostrar_mensaje(
@@ -256,10 +273,11 @@ class VentanaHistorial(ctk.CTkToplevel):
             "promedio": round(total_limones / total_sesiones, 2),
         }
 
-    def agregar_fila(self, sesion):
-        """Agrega una fila de registro a la tabla."""
-        row_frame = ctk.CTkFrame(self.records_scroll, fg_color="transparent")
-        row_frame.pack(fill="x", pady=5)
+    def agregar_fila(self, sesion, indice=0):
+        """Agrega una fila de registro a la tabla (cebra: filas alternadas)."""
+        fondo_fila = COLOR["panel_oscuro"] if indice % 2 else "transparent"
+        row_frame = ctk.CTkFrame(self.records_scroll, fg_color=fondo_fila, corner_radius=8)
+        row_frame.pack(fill="x", pady=2)
 
         fecha, hora = self._formatear_timestamp(sesion.get("timestamp", ""))
 
@@ -288,7 +306,7 @@ class VentanaHistorial(ctk.CTkToplevel):
                 anchor="w",
                 **({"text_color": color} if color else {}),
             )
-            etiqueta.grid(row=0, column=i, padx=5, sticky="w")
+            etiqueta.grid(row=0, column=i, padx=5, pady=6, sticky="w")
 
         delete_btn = ctk.CTkButton(
             row_frame,
@@ -301,7 +319,7 @@ class VentanaHistorial(ctk.CTkToplevel):
             corner_radius=8,
             command=lambda sid=sesion.get("id"): self.eliminar_sesion(sid),
         )
-        delete_btn.grid(row=0, column=6, padx=5)
+        delete_btn.grid(row=0, column=6, padx=5, pady=6)
 
     @staticmethod
     def _formatear_timestamp(timestamp_str: str) -> tuple[str, str]:

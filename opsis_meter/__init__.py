@@ -10,4 +10,4 @@ Arquitectura organizada por dominios (screaming architecture):
 - compartido:     tema visual, configuración y utilidades comunes.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"

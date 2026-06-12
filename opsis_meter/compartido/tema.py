@@ -2,6 +2,10 @@
 Tema visual compartido de Opsis Meter.
 Centraliza la paleta de colores, la tipografía y la configuración
 global de CustomTkinter para que todas las ventanas sean coherentes.
+
+Paleta oscura con base azul-grisácea: un único azul de acción
+("primario" == "acento"), colores semánticos para éxito/peligro/
+advertencia y una escala de texto de cuatro niveles.
 """
 
 import customtkinter as ctk
@@ -9,27 +13,33 @@ import customtkinter as ctk
 FAMILIA_FUENTE = "Segoe UI"
 
 COLOR = {
-    "fondo": ("#1a1a1a", "#2b2b2b"),
-    "panel": ("#1f1f1f", "#2d2d2d"),
-    "panel_oscuro": ("#1a1a1a", "#252525"),
-    "panel_video": "#0a0a0a",
-    "primario": "#5C9EFF",
-    "primario_hover": "#4A8EFF",
-    "acento": "#4A90E2",
-    "acento_hover": "#357ABD",
-    "exito": "#4CAF50",
-    "exito_hover": "#45A049",
-    "peligro": "#F44336",
-    "peligro_hover": "#D32F2F",
-    "advertencia": "#FF9800",
-    "advertencia_hover": "#F57C00",
-    "neutro": "#5C7C9A",
-    "neutro_hover": "#4A6B8A",
-    "texto": "#D0D0D0",
-    "texto_suave": "#A0A0A0",
-    "texto_tenue": "#8A8A8A",
-    "texto_apagado": "#707070",
-    "texto_version": "#666666",
+    # Superficies (de más profunda a más elevada)
+    "fondo": "#14171C",
+    "panel": "#1C2026",
+    "panel_oscuro": "#171A1F",
+    "panel_video": "#0B0D11",
+    "borde": "#2E343D",
+    # Azul de acción (primario y acento unificados)
+    "primario": "#4D8DF7",
+    "primario_hover": "#3A77DC",
+    "acento": "#4D8DF7",
+    "acento_hover": "#3A77DC",
+    # Semánticos
+    "exito": "#3FB950",
+    "exito_hover": "#2EA043",
+    "peligro": "#E5534B",
+    "peligro_hover": "#CB3A32",
+    "advertencia": "#E8923A",
+    "advertencia_hover": "#CF7E2E",
+    # Botones secundarios
+    "neutro": "#39414E",
+    "neutro_hover": "#46505F",
+    # Escala de texto
+    "texto": "#E6E8EB",
+    "texto_suave": "#A8AEB8",
+    "texto_tenue": "#7D8590",
+    "texto_apagado": "#636B76",
+    "texto_version": "#4F565F",
 }
 
 _configurado = False
