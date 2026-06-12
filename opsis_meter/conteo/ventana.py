@@ -2,23 +2,44 @@
 Ventana de Conteo - Opsis Meter
 Vista de cámara y control de captura.
 
-La captura corre en un hilo propio (captura.FlujoCamara); esta ventana
-solo consume el último frame disponible desde un bucle de refresco con
-after(), de modo que todas las operaciones de Tkinter ocurren en el hilo
-principal.
+Tiene dos modos:
+
+- Vista previa: la captura corre en un hilo propio (captura.FlujoCamara)
+  y esta ventana consume el último frame desde un bucle after(), de modo
+  que todas las operaciones de Tkinter ocurren en el hilo principal.
+- Conteo con IA: se lanza un proceso independiente (conteo.proceso_ia)
+  que es dueño de la cámara y ejecuta detección + seguimiento + línea
+  virtual; la UI solo dibuja los frames anotados y el total que llegan
+  por una cola de multiprocessing.
 """
 
+import multiprocessing
+import queue as cola_estandar
 import threading
+import time
 import tkinter.messagebox as messagebox
 
 import customtkinter as ctk
 import cv2
+import numpy as np
 from PIL import Image, ImageTk
 
 from opsis_meter.captura.camara import ESTADO_ERROR, FlujoCamara
 from opsis_meter.captura.dispositivos import detectar_camaras
+from opsis_meter.compartido.configuracion import cargar_configuracion
 from opsis_meter.compartido.tema import COLOR, fuente
 from opsis_meter.compartido.ventanas import centrar_ventana
+from opsis_meter.conteo.mensajes import (
+    CMD_DETENER,
+    CMD_FPS,
+    AvisoConteo,
+    ErrorConteo,
+    FinConteo,
+    FrameConteo,
+)
+from opsis_meter.conteo.proceso_ia import ejecutar_conteo
+
+ESPERA_CIERRE_PROCESO = 5.0  # segundos para que el proceso cierre el lote
 
 
 class VentanaConteo(ctk.CTkToplevel):
@@ -33,10 +54,21 @@ class VentanaConteo(ctk.CTkToplevel):
 
         self.parent = parent
 
-        # Captura de video
+        # Captura de video (vista previa)
         self.flujo: FlujoCamara | None = None
         self.vista_activa = False
         self.fps_limite = 30
+
+        # Proceso de conteo con IA
+        self.proceso_ia: multiprocessing.Process | None = None
+        self.cola_eventos = None
+        self.cola_comandos = None
+        self.conteo_activo = False
+        self._cierre_limite = None  # plazo para que el proceso confirme el fin
+
+        # Línea virtual de conteo
+        self.linea_orientacion = "vertical"
+        self.linea_posicion = 0.5
 
         # Pantalla completa
         self.fullscreen_state = False
@@ -171,8 +203,52 @@ class VentanaConteo(ctk.CTkToplevel):
         )
         controls_title.pack(pady=(0, 20))
 
+        # ===== CONTADOR EN VIVO =====
+        contador_frame = ctk.CTkFrame(
+            controls_inner, fg_color=COLOR["panel_oscuro"], corner_radius=14
+        )
+        contador_frame.pack(fill="x", pady=(0, 20))
+
+        contador_titulo = ctk.CTkLabel(
+            contador_frame,
+            text="Total contado",
+            font=fuente(14, "bold"),
+            text_color=COLOR["texto"],
+        )
+        contador_titulo.pack(pady=(12, 0))
+
+        self.contador_label = ctk.CTkLabel(
+            contador_frame,
+            text="0",
+            font=fuente(44, "bold"),
+            text_color=COLOR["exito"],
+        )
+        self.contador_label.pack()
+
+        self.estado_conteo_label = ctk.CTkLabel(
+            contador_frame,
+            text="En escena: 0",
+            font=fuente(12),
+            text_color=COLOR["texto_suave"],
+        )
+        self.estado_conteo_label.pack(pady=(0, 12))
+
         buttons_frame = ctk.CTkFrame(controls_inner, fg_color="transparent")
         buttons_frame.pack(fill="x", pady=(0, 25))
+
+        self.count_button = ctk.CTkButton(
+            buttons_frame,
+            text="Iniciar Conteo IA",
+            font=fuente(18, "bold"),
+            height=60,
+            fg_color=COLOR["acento"],
+            hover_color=COLOR["acento_hover"],
+            corner_radius=18,
+            border_width=0,
+            border_spacing=10,
+            command=self.iniciar_conteo,
+        )
+        self.count_button.pack(fill="x", pady=(0, 15))
 
         self.start_button = ctk.CTkButton(
             buttons_frame,
@@ -340,6 +416,54 @@ class VentanaConteo(ctk.CTkToplevel):
         self.resolution_menu.set("640x480")
         self.resolution_menu.pack(fill="x")
 
+        # Línea virtual de conteo
+        linea_container = ctk.CTkFrame(scrollable_frame, fg_color="transparent")
+        linea_container.pack(fill="x", pady=(0, 20))
+
+        linea_label = ctk.CTkLabel(
+            linea_container,
+            text="Línea de conteo:",
+            font=fuente(15, "bold"),
+            anchor="w",
+        )
+        linea_label.pack(fill="x", pady=(0, 8))
+
+        self.linea_orientacion_menu = ctk.CTkComboBox(
+            linea_container,
+            values=["Vertical", "Horizontal"],
+            font=fuente(14),
+            command=self.al_cambiar_orientacion_linea,
+            state="normal",
+            height=42,
+            corner_radius=12,
+            border_width=2,
+            border_color=COLOR["neutro"],
+            button_color=COLOR["neutro"],
+            button_hover_color=COLOR["neutro_hover"],
+        )
+        self.linea_orientacion_menu.set("Vertical")
+        self.linea_orientacion_menu.pack(fill="x", pady=(0, 10))
+
+        self.linea_posicion_slider = ctk.CTkSlider(
+            linea_container,
+            from_=0.1,
+            to=0.9,
+            number_of_steps=80,
+            command=self.al_mover_linea,
+            height=20,
+        )
+        self.linea_posicion_slider.set(0.5)
+        self.linea_posicion_slider.pack(fill="x")
+
+        self.linea_posicion_label = ctk.CTkLabel(
+            linea_container,
+            text="Posición: 50%",
+            font=fuente(11),
+            text_color=COLOR["texto_apagado"],
+            anchor="w",
+        )
+        self.linea_posicion_label.pack(fill="x", pady=(6, 0))
+
         # Límite de FPS
         fps_container = ctk.CTkFrame(scrollable_frame, fg_color="transparent")
         fps_container.pack(fill="x", pady=(0, 20))
@@ -465,6 +589,13 @@ class VentanaConteo(ctk.CTkToplevel):
             self.detener_captura()
             self.iniciar_captura()
 
+    def al_cambiar_orientacion_linea(self, eleccion):
+        self.linea_orientacion = "horizontal" if eleccion == "Horizontal" else "vertical"
+
+    def al_mover_linea(self, valor):
+        self.linea_posicion = round(float(valor), 2)
+        self.linea_posicion_label.configure(text=f"Posición: {int(self.linea_posicion * 100)}%")
+
     def al_mover_slider_fps(self, valor):
         self.fijar_fps(int(valor))
 
@@ -482,6 +613,11 @@ class VentanaConteo(ctk.CTkToplevel):
         self.fps_entry.insert(0, str(self.fps_limite))
         if self.flujo:
             self.flujo.fijar_limite_fps(self.fps_limite)
+        if self.conteo_activo and self.cola_comandos is not None:
+            try:
+                self.cola_comandos.put_nowait((CMD_FPS, self.fps_limite))
+            except cola_estandar.Full:
+                pass
 
     # ----- Captura -----
 
@@ -581,6 +717,182 @@ class VentanaConteo(ctk.CTkToplevel):
         self.camera_display.configure(image=foto, text="")
         self.camera_display.image = foto  # mantener referencia
 
+    # ----- Conteo con IA (proceso independiente) -----
+
+    def iniciar_conteo(self):
+        """Lanza el proceso de IA que captura, detecta y cuenta."""
+        if self.conteo_activo:
+            return
+
+        if self.tipo_camara == "ip":
+            fuente_video = self.ip_camera_entry.get().strip()
+            if not fuente_video:
+                messagebox.showerror(
+                    "Error", "Por favor, ingresa la URL/IP de la cámara", parent=self
+                )
+                return
+        else:
+            fuente_video = self.dispositivo_actual
+
+        # El proceso de IA es el dueño de la cámara: cerrar la vista previa
+        if self.vista_activa:
+            self.detener_captura()
+
+        config = cargar_configuracion()
+        contexto = multiprocessing.get_context("spawn")
+        self.cola_eventos = contexto.Queue(maxsize=8)
+        self.cola_comandos = contexto.Queue()
+        self.proceso_ia = contexto.Process(
+            target=ejecutar_conteo,
+            args=(
+                fuente_video,
+                self.tipo_camara == "ip",
+                self.resolucion_actual,
+                self.fps_limite,
+                str(config.ruta_modelo) if config.ruta_modelo else None,
+                config.umbral_confianza,
+                self.linea_orientacion,
+                self.linea_posicion,
+                self.cola_eventos,
+                self.cola_comandos,
+            ),
+            daemon=True,
+        )
+        self.proceso_ia.start()
+
+        self.conteo_activo = True
+        self._cierre_limite = None
+        self.contador_label.configure(text="0")
+        self.estado_conteo_label.configure(
+            text="Iniciando proceso de IA...", text_color=COLOR["texto_suave"]
+        )
+        self.camera_display.configure(text="Iniciando proceso de IA...")
+        self._controles_en_conteo(True)
+        self._procesar_eventos_ia()
+
+    def detener_conteo(self):
+        """Pide al proceso de IA cerrar el lote y espera su resumen."""
+        if not self.conteo_activo or self._cierre_limite is not None:
+            return
+        self._cierre_limite = time.monotonic() + ESPERA_CIERRE_PROCESO
+        self.count_button.configure(state="disabled", text="Cerrando lote...")
+        try:
+            self.cola_comandos.put_nowait((CMD_DETENER,))
+        except cola_estandar.Full:
+            pass
+
+    def _procesar_eventos_ia(self):
+        """Bucle after() que drena la cola de eventos del proceso de IA."""
+        if not self.conteo_activo:
+            return
+
+        ultimo_frame = None
+        try:
+            while True:
+                evento = self.cola_eventos.get_nowait()
+                if isinstance(evento, FrameConteo):
+                    ultimo_frame = evento
+                elif isinstance(evento, AvisoConteo):
+                    self.estado_conteo_label.configure(
+                        text=evento.mensaje, text_color=COLOR["advertencia"]
+                    )
+                elif isinstance(evento, ErrorConteo):
+                    self._finalizar_conteo(error=evento.mensaje)
+                    return
+                elif isinstance(evento, FinConteo):
+                    self._finalizar_conteo(fin=evento)
+                    return
+        except cola_estandar.Empty:
+            pass
+
+        if ultimo_frame is not None:
+            datos = np.frombuffer(ultimo_frame.jpeg, dtype=np.uint8)
+            frame = cv2.imdecode(datos, cv2.IMREAD_COLOR)
+            if frame is not None:
+                self._renderizar_frame(frame)
+            self.contador_label.configure(text=str(ultimo_frame.total))
+            if ultimo_frame.con_ia:
+                self.estado_conteo_label.configure(
+                    text=f"En escena: {ultimo_frame.en_escena}",
+                    text_color=COLOR["texto_suave"],
+                )
+            self.fps_label.configure(text=f"FPS: {int(ultimo_frame.fps)}")
+
+        # El proceso murió sin reportar (crash) o no confirma el cierre a tiempo
+        if self.proceso_ia is not None and not self.proceso_ia.is_alive():
+            self._finalizar_conteo(error="El proceso de conteo terminó inesperadamente.")
+            return
+        if self._cierre_limite is not None and time.monotonic() > self._cierre_limite:
+            self.proceso_ia.terminate()
+            self._finalizar_conteo(error="El proceso de conteo no respondió; se forzó el cierre.")
+            return
+
+        self.after(30, self._procesar_eventos_ia)
+
+    def _finalizar_conteo(self, fin: FinConteo | None = None, error: str | None = None):
+        """Cierra el proceso de IA y restaura la interfaz."""
+        self.conteo_activo = False
+        self._cierre_limite = None
+
+        if self.proceso_ia is not None:
+            self.proceso_ia.join(timeout=2.0)
+            if self.proceso_ia.is_alive():
+                self.proceso_ia.terminate()
+            self.proceso_ia = None
+        self.cola_eventos = None
+        self.cola_comandos = None
+
+        self._controles_en_conteo(False)
+        self.camera_display.configure(image="", text="")
+        self.camera_display.image = None
+        self.fps_label.configure(text="FPS: 0")
+
+        if error:
+            self.estado_conteo_label.configure(text=error, text_color=COLOR["peligro"])
+            messagebox.showerror("Conteo interrumpido", error, parent=self)
+        elif fin:
+            self.contador_label.configure(text=str(fin.total))
+            self.estado_conteo_label.configure(
+                text="Lote cerrado", text_color=COLOR["exito"]
+            )
+            # TODO Bloque 3: persistir la sesión en SQLite y sincronizar
+            messagebox.showinfo(
+                "Lote cerrado",
+                f"Total contado: {fin.total}\n"
+                f"Duración: {fin.duracion_segundos:.1f} s\n"
+                f"FPS promedio: {fin.fps_promedio:.1f}",
+                parent=self,
+            )
+
+    def _controles_en_conteo(self, contando: bool):
+        """Ajusta los controles cuando el proceso de IA toma la cámara."""
+        if contando:
+            self.count_button.configure(
+                text="Detener Conteo",
+                fg_color=COLOR["peligro"],
+                hover_color=COLOR["peligro_hover"],
+                command=self.detener_conteo,
+                state="normal",
+            )
+        else:
+            self.count_button.configure(
+                text="Iniciar Conteo IA",
+                fg_color=COLOR["acento"],
+                hover_color=COLOR["acento_hover"],
+                command=self.iniciar_conteo,
+                state="normal",
+            )
+
+        estado = "disabled" if contando else "normal"
+        self.start_button.configure(state=estado)
+        self.stop_button.configure(state="disabled")
+        self.camera_type_menu.configure(state=estado)
+        self.device_menu.configure(state=estado)
+        self.ip_camera_entry.configure(state=estado)
+        self.resolution_menu.configure(state=estado)
+        self.linea_orientacion_menu.configure(state=estado)
+        self.linea_posicion_slider.configure(state=estado)
+
     # ----- Pantalla completa y cierre -----
 
     def alternar_pantalla_completa(self, event=None):
@@ -602,6 +914,16 @@ class VentanaConteo(ctk.CTkToplevel):
 
     def al_cerrar(self):
         """Maneja el cierre de la ventana."""
+        if self.conteo_activo and self.proceso_ia is not None:
+            # Cierre de ventana: no esperamos el resumen, solo soltar la cámara
+            self.conteo_activo = False
+            try:
+                self.cola_comandos.put_nowait((CMD_DETENER,))
+            except (cola_estandar.Full, AttributeError):
+                pass
+            self.proceso_ia.join(timeout=1.0)
+            if self.proceso_ia.is_alive():
+                self.proceso_ia.terminate()
         self.detener_captura()
         self.destroy()
         self.parent.deiconify()
